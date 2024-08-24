@@ -2,21 +2,33 @@ package main
 
 import (
 	confpkg "github.com/mayckol/rate-limiter/configpkg"
+	"github.com/mayckol/rate-limiter/internal/infra/cache/redispkg"
 	"github.com/mayckol/rate-limiter/internal/infra/httppkg/webserver"
+	"github.com/mayckol/rate-limiter/internal/infra/repository"
 	"log"
 )
 
 func main() {
-
-	// Load the configuration
-	appEnv := confpkg.GetEnvPath()
-	/*
-	   To handle not set env variables, just check the len of the invalidVars slice (second return value)
-	*/
-	_, _, err := confpkg.LoadConfig(appEnv)
+	conf, _, err := confpkg.LoadConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	webserver.Start()
+	cacheClient, err := redispkg.NewRedisClient(&redispkg.ClientSettings{
+		Host:     conf.RedisHost,
+		Port:     conf.RedisPort,
+		Password: conf.RedisCacheKey,
+		AppEnv:   conf.AppEnv,
+	})
+
+	// sample of how to use memcached or other cache client
+	//cacheClient, err := memcached.NewMemCachedClient(&memcached.ClientSettings{})
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	requestRepository := repository.NewRequestRepository(cacheClient)
+
+	webserver.Start(requestRepository)
 }

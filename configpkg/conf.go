@@ -3,26 +3,33 @@ package confpkg
 import (
 	"fmt"
 	"github.com/mayckol/envsnatch"
-	"os"
-	"strings"
+	"github.com/mayckol/rate-limiter/utils"
 )
 
 var Config *Conf
 
 type Conf struct {
-	WSHost string `env:"WS_HOST"`
-	JWTKey string `env:"JWT_KEY"`
+	AppEnv              string `env:"APP_ENV"`
+	WSHost              string `env:"WS_HOST"`
+	JWTKey              string `env:"JWT_KEY"`
+	RedisHost           string `env:"REDIS_HOST"`
+	RedisPort           string `env:"REDIS_PORT"`
+	RedisCacheKey       string `env:"REDIS_CACHE_KEY"`
+	DefaultMaxReqPerSec int    `env:"DEFAULT_MAX_REQ_PER_SEC"`
+	TokenExpiresInSec   int    `env:"TOKEN_EXPIRES_IN_SEC"`
+	TimeoutDuration     int    `env:"TIMEOUT_DURATION"`
 }
 
 // LoadConfig loads the configuration from the .env file or .env.test file and returns the configuration and the invalid variables
-func LoadConfig(envPath string) (*Conf, *[]envsnatch.UnmarshalingErr, error) {
-	if envPath == "" {
-		return nil, nil, fmt.Errorf("env path is empty")
+func LoadConfig(isTest ...bool) (*Conf, *[]envsnatch.UnmarshalingErr, error) {
+	path := utils.RootPath()
+	envType := ".env"
+	if isTest != nil && isTest[0] == true {
+		envType = ".env.test"
 	}
-	file := strings.Join([]string{envPath}, "/")
 	es, _ := envsnatch.NewEnvSnatch()
-	es.AddPath(file[0:strings.LastIndex(file, "/")])
-	es.AddFileName(file[strings.LastIndex(file, "/")+1:])
+	es.AddPath(path)
+	es.AddFileName(envType)
 
 	var cfg Conf
 	invalidVars, err := es.Unmarshal(&cfg)
@@ -35,13 +42,4 @@ func LoadConfig(envPath string) (*Conf, *[]envsnatch.UnmarshalingErr, error) {
 
 	Config = &cfg
 	return &cfg, invalidVars, nil
-}
-
-// GetEnvPath returns the path of the .env file, if isTestEnv is true, it returns the path of the .env.test file
-func GetEnvPath(isTestEnv ...bool) string {
-	absPath := os.Getenv("PWD")
-	if len(isTestEnv) > 0 && isTestEnv[0] == true {
-		return absPath + "/.env.test"
-	}
-	return absPath + "/.env"
 }

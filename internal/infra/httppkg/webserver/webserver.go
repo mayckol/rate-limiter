@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	confpkg "github.com/mayckol/rate-limiter/configpkg"
+	"github.com/mayckol/rate-limiter/internal/entity"
 	"github.com/mayckol/rate-limiter/internal/infra/httppkg/handlers"
 	"log"
 	"net/http"
@@ -14,8 +15,8 @@ import (
 	"time"
 )
 
-func Start() {
-	server := &http.Server{Addr: confpkg.Config.WSHost, Handler: handlers.Handler()}
+func Start(reqRepository entity.RequestRepositoryInterface) {
+	server := &http.Server{Addr: confpkg.Config.WSHost, Handler: handlers.Handler(reqRepository)}
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 
